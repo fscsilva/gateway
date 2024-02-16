@@ -1,0 +1,88 @@
+server:
+  port: ${SERVICE_GATEWAY_PORT:8000}
+  netty:
+    connection-timeout: 60s
+    idle-timeout: 15s
+  shutdown: graceful
+aws:
+  region: ${AWS_REGION:us-east-1}
+spring:
+  application:
+    name: mobile-gw
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+  cloud:
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedHeaders:
+              - "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+      httpclient:
+        connect-timeout: 10000 # 2s
+        response-timeout: 30s
+        pool:
+          type: elastic
+          max-idle-time: 30s
+          max-life-time: 60s
+      default-filters:
+        #        - SaveSession
+        #        - TokenRelay
+#        - name: RequestRateLimiter
+#          args:
+#            redis-rate-limiter:
+#              replenishRate: 10
+#              burstCapacity: 20
+#              requestedTokens: 1
+        - name: Retry
+          args:
+            retries: 1
+            methods: GET
+            series: SERVER_ERROR
+            exceptions: java.io.IOException, java.util.concurrent.TimeoutException
+            backoff:
+              firstBackoff: 50ms
+              maxBackOff: 500ms
+              factor: 2
+              basedOnPreviousValue: false
+      routes:
+        - id: tea-bff-films-service
+          uri: http://localhost:8091
+          predicates:
+            - Path=/api/v1.0.0/managers/application/{applicationId}/final-report
+          metadata:
+            response-timeout: 120000
+
+management:
+  endpoints:
+    web:
+      base-path: /management
+      exposure:
+        include: health, heapdump, info, prometheus
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    ROOT: INFO
+    com.tenantevaluation.mobile: DEBUG
+#    org.springframework: DEBUG
+    org.springframework.cloud.gateway: DEBUG
