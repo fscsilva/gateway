@@ -1,17 +1,23 @@
 server:
-  port: ${SERVICE_GATEWAY_PORT:8000}
+  port: ${SERVICE_GATEWAY_PORT:8800}
   netty:
     connection-timeout: 60s
     idle-timeout: 15s
   shutdown: graceful
+  servlet:
+    context-path: /te-gateway
 aws:
   region: ${AWS_REGION:us-east-1}
 spring:
+  main:
+    web-application-type: reactive
   application:
-    name: mobile-gw
+    name: te-gateway
   lifecycle:
     timeout-per-shutdown-phase: 15s
   cloud:
+    compatibility-verifier:
+      enabled: false
     gateway:
       globalcors:
         corsConfigurations:
@@ -63,7 +69,7 @@ management:
     web:
       base-path: /management
       exposure:
-        include: health, heapdump, info, prometheus
+        include: health, heapdump, info, prometheus, mappings
   endpoint:
     health:
       show-details: always
@@ -86,3 +92,34 @@ logging:
     com.tenantevaluation.mobile: DEBUG
 #    org.springframework: DEBUG
     org.springframework.cloud.gateway: DEBUG
+
+user-service:
+  host: ${USER_SERVICE_HOST:http://localhost}:8084
+  username: user
+  password: pwd
+  getUserByUsername: ${user-service.host}/te-users/v1/users?username={username}
+
+movie-service:
+  host: ${MOVIE_SERVICE_HOST:http://localhost}:8083
+  username: user
+  password: pwd
+  getMovieById: ${movie-service.host}/te-movies/v1/movies/{movieId}
+  addMovie: ${movie-service.host}/te-movies/v1/movies
+  deleteMovie: ${movie-service.host}/te-movies/v1/movies/{movieId}
+  updateMovie: ${movie-service.host}/te-movies/v1/movies/{movieId}
+
+author-service:
+  host: ${AUTHOR_SERVICE_HOST:http://localhost}:8081
+  username: user
+  password: pwd
+  getAuthorById: ${author-service.host}/te-authors/v1/authors/{authorId}
+  addAuthor: ${author-service.host}/te-authors/v1/authors
+  deleteAuthor: ${author-service.host}/te-authors/v1/authors/{authorId}
+  updateAuthor: ${author-service.host}/te-authors/v1/authors/{authorId}
+
+rest-template:
+  connectTimeout: 120000
+  readTimeout: 300000
+  maximumRetries: 4
+  fixedBackOffPeriod: 30000
+
