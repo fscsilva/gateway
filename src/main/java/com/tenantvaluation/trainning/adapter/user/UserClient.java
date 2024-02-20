@@ -46,22 +46,7 @@ public class UserClient implements UserService {
             .buildAndExpand(username)
             .toUriString();
 
-        var encoder = new BCryptPasswordEncoder();
-        return CompletableFuture.completedFuture(User.builder()
-                .username("username")
-                .password(encoder.encode("password"))
-            .authorities(Collections.singletonList(new GrantedAuthority() {
-                @Override
-                public String getAuthority() {
-                    return "ADMIN";
-                }
-            }))
-            .statusActive(true).build());
-
-        /*return CompletableFuture.completedFuture(restTemplate.getForObject(queryUrl, User.class))
-            .thenApply(response -> Optional.ofNullable(response)
-                .filter(title -> response.getStatusActive())
-                .orElse(null));*/
+        return CompletableFuture.supplyAsync(() -> restTemplate.getForObject(queryUrl, User.class));
     }
 
     @Override

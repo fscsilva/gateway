@@ -95,9 +95,9 @@ logging:
 
 user-service:
   host: ${USER_SERVICE_HOST:http://localhost}:8084
-  username: user
-  password: pwd
-  getUserByUsername: ${user-service.host}/te-users/v1/users?username={username}
+  username: admin
+  password: admin
+  getUserByUsername: ${user-service.host}/te-users/user-service/search/findUsersByUsername?username={username}
 
 movie-service:
   host: ${MOVIE_SERVICE_HOST:http://localhost}:8083
