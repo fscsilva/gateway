@@ -1,0 +1,135 @@
+server:
+  port: ${GATEWAY_SERVICE_PORT:9997}
+  netty:
+    connection-timeout: 60s
+    idle-timeout: 15s
+  shutdown: graceful
+  servlet:
+    context-path: /te-gateway
+aws:
+  region: ${AWS_REGION:us-east-1}
+spring:
+  main:
+    web-application-type: reactive
+  application:
+    name: te-gateway
+  lifecycle:
+    timeout-per-shutdown-phase: 15s
+  cloud:
+    compatibility-verifier:
+      enabled: false
+    gateway:
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedHeaders:
+              - "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+      httpclient:
+        connect-timeout: 10000 # 2s
+        response-timeout: 30s
+        pool:
+          type: elastic
+          max-idle-time: 30s
+          max-life-time: 60s
+      default-filters:
+        #        - SaveSession
+        #        - TokenRelay
+#        - name: RequestRateLimiter
+#          args:
+#            redis-rate-limiter:
+#              replenishRate: 10
+#              burstCapacity: 20
+#              requestedTokens: 1
+        - name: Retry
+          args:
+            retries: 1
+            methods: GET
+            series: SERVER_ERROR
+            exceptions: java.io.IOException, java.util.concurrent.TimeoutException
+            backoff:
+              firstBackoff: 50ms
+              maxBackOff: 500ms
+              factor: 2
+              basedOnPreviousValue: false
+      routes:
+        - id: tea-bff-films-service
+          uri: http://localhost:8091
+          predicates:
+            - Path=/api/v1.0.0/managers/application/{applicationId}/final-report
+          metadata:
+            response-timeout: 120000
+
+management:
+  endpoints:
+    web:
+      base-path: /management
+      exposure:
+        include: health, heapdump, info, prometheus, mappings
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+      probes:
+        enabled: true
+      group:
+        readiness:
+          include: readinessState
+  info:
+    env:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+logging:
+  level:
+    ROOT: INFO
+    com.tenantevaluation.mobile: DEBUG
+#    org.springframework: DEBUG
+    org.springframework.cloud.gateway: DEBUG
+
+user-service:
+  host: ${USER_SERVICE_HOST:http://localhost}
+  port: ${USER_SERVICE_PORT:8084}
+  username: ${USERS_ADMIN_ROLE_NAME:admin}
+  password: ${USERS_ADMIN_ROLE_PASSWORD:admin}
+  getUserByUsername: ${user-service.host}:${user-service.port}/te-users/api/v1.0.0/users?username={username}
+
+movie-service:
+  host: ${MOVIE_SERVICE_HOST:http://localhost}
+  port: ${USER_SERVICE_PORT:8083}
+  username: ${USERS_ADMIN_ROLE_NAME:admin}
+  password: ${USERS_ADMIN_ROLE_PASSWORD:admin}
+  addMovieUrl: ${movie-service.host}:${movie-service.port}/movies-service/v1/movies
+  deleteMovieUrl: ${movie-service.host}:${movie-service.port}/movies-service/v1/movies/{id}
+  updateMovieUrl: ${movie-service.host}:${movie-service.port}/movies-service/v1/movies/{id}
+  getMovieByIdURL: ${movie-service.host}:${movie-service.port}/movies-service/v1/movies/{id}
+  getMoviesByGenreURL: ${movie-service.host}:${movie-service.port}/movies-service/v1/movies/genres/{id}?page={page}&size={size}&sort=string
+  getMoviesByAuthorNameURL: ${movie-service.host}:${movie-service.port}/movies-service/v1/movies/authors?name=Cris&page=0&size=50
+
+  #future hypermedia links
+  addMovieHypermediaUrl: ${movie-service.host}:${movie-service.port}/movies-service/movies
+  getGenreHypermediaUrl: ${movie-service.host}:${movie-service.port}/movies-service/genres/{id}
+  deleteMovieHypermediaUrl: ${movie-service.host}:${movie-service.port}/movies-service/movies/{id}
+  updateMovieHypermediaUrl: ${movie-service.host}:${movie-service.port}/movies-service/movies/{id}
+  getMovieByIdHypermediaURL: ${movie-service.host}:${movie-service.port}/movies-service/movies/{id}
+
+author-service:
+  host: ${AUTHOR_SERVICE_HOST:http://localhost}
+  port: ${USER_SERVICE_PORT:8081}
+  username: ${MOVIES_ADMIN_ROLE_NAME:admin}
+  password: ${MOVIES_ADMIN_ROLE_PASSWORD:admin}
+  getAuthorByIdUrl: ${author-service.host}:${author-service.port}/authors-service/v1/authors/{id}
+  addAuthorUrl: ${author-service.host}:${author-service.port}/authors-service/v1/authors
+
+rest-template:
+  connectTimeout: 120000
+  readTimeout: 300000
+  maximumRetries: 4
+  fixedBackOffPeriod: 30000
+
